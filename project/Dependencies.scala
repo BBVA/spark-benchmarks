@@ -32,7 +32,7 @@ object Dependencies {
 
   val Alluxio = Seq(
     libraryDependencies ++= Seq(
-      "org.alluxio" % "alluxio-core-client" % AlluxioVersion
+      "org.alluxio" % "alluxio-core-client" % AlluxioVersion % Provided
     )
   )
 
