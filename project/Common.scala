@@ -15,6 +15,7 @@ object Common extends AutoPlugin {
     Dependencies.Common ++ Seq(
       organization := "com.bbva.spark",
       organizationName := "BBVA",
+      version := "0.1.0",
       organizationHomepage := Some(url("http://bbva.com")),
       //scmInfo := Some(ScmInfo(url("https://github.com/bbva/spark-benchmarks"), "git@github.com:bbva/spark-benchmarks.git")),
       //developers += Developer(),

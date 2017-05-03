@@ -19,14 +19,28 @@ package com.bbva.spark.benchmarks.alluxio
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapred.lib.MultipleTextOutputFormat
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.{PairRDDFunctions, RDD}
 
 import scala.util.Random
 
 object DataWriter {
 
-  def generate(outputDir: String, numFiles: Int, fileSize: Long, numPartitions: Int)(implicit sc: SparkContext): Unit = {
+  def writeTests(outputDir: String, numFiles: Int, fileSize: Long, numPartitions: Int, writeBehavior: String): Unit = {
+
+    val sparkConf = new SparkConf()
+      .setAppName("TestAlluxioIO")
+      .set("spark.logConf", "true")
+      .set("spark.driver.port", "51000")
+      .set("spark.fileserver.port", "51100")
+      .set("spark.broadcast.port", "51200")
+      .set("spark.blockManager.port", "51400")
+      .set("spark.executor.port", "51500")
+
+    implicit val sc = SparkContext.getOrCreate(sparkConf)
+
+    sc.hadoopConfiguration.set("alluxio.user.file.writetype.default", writeBehavior)
+    sc.hadoopConfiguration.set("alluxio.user.block.size.bytes.default", "32MB")
 
     val bufferSize = 20
 
@@ -38,6 +52,8 @@ object DataWriter {
     , preservesPartitioning = true)
 
     dataSet.saveAsTextFileByKey(outputDir)
+
+    sc.stop()
 
   }
 

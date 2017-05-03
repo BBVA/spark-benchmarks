@@ -16,24 +16,28 @@
 
 package com.bbva.spark.benchmarks.alluxio
 
+import org.json4s.BuildInfo
 import scopt.OptionParser
 
-sealed trait TestMode
+sealed trait TestMode {
+  def command: String
+}
 
-case object Write extends TestMode
-case object Read extends TestMode
+case object Write extends TestMode { def command: String = "write" }
+case object Read extends TestMode { def command: String = "read" }
+case object Clean extends TestMode { def command: String = "clean" }
 // TODO complete Append and Truncate
-case object Append extends TestMode
-case object Truncate extends TestMode
-case object Clean extends TestMode
-case object NotDefined extends TestMode
+case object Append extends TestMode { def command: String = "append" }
+case object Truncate extends TestMode { def command: String = "truncate" }
+case object NotDefined extends TestMode { def command: String = "not-defined" }
 
 case class TestAlluxioIOConf(mode: TestMode = NotDefined,
-                             numFiles: Int = 1,
-                             fileSize: Long = 1024,
-                             outputDir: String = "/benchmarks/TestAlluxioIO",
+                             numFiles: Int = 4,
+                             fileSize: Long = 128,
+                             benchmarkDir: String = "/benchmarks/TestAlluxioIO",
                              readBehavior: String = "CACHE_PROMOTE",
-                             writeBehavior: String = "MUST_CACHE")
+                             writeBehavior: String = "MUST_CACHE",
+                             compression: Option[String] = None)
 
 // TODO include alluxio hostname
 
@@ -41,7 +45,7 @@ object TestAlluxioIOConfParser {
 
   private lazy val parser = new OptionParser[TestAlluxioIOConf]("TestAlluxioIO") {
 
-    head("Test Alluxio I/O")
+    head(s"Test Alluxio I/O ${BuildInfo.version}")
 
     cmd("write").text(
       """Runs a test writing to the cluster. The written files are located in Alluxio under the folder
@@ -49,23 +53,36 @@ object TestAlluxioIOConfParser {
       """.stripMargin)
       .action((_, c) => c.copy(mode = Write))
       .children(
-        opt[Int]("nrFiles").required().valueName("<value>")
+
+        opt[Int]("numFiles").required().valueName("<value>")
           .action((n, c) => c.copy(numFiles = n))
-          .text("Number of files to write. Default to 1."),
+          .text("Number of files to write. Default to 4."),
+
         opt[String]("fileSize").required().valueName("<value>")
           .action((s, c) => c.copy(fileSize = sizeToBytes(s)))
           .validate(validateSize)
-          .text("Size of each file to write (B|KB|MB|GB). Default to 1MB."),
+          .text("Size of each file to write (B|KB|MB|GB). Default to 128B."),
+
         opt[String]("outputDir").required().valueName("<file>")
-          .action((o, c) => c.copy(outputDir = o))
+          .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory to place the resultant files. Default to /benchmarks/TestAlluxioIO"),
+
         opt[String]("writeBehavior").optional().valueName("<behavior>")
           .action((b, c) => c.copy(writeBehavior = b))
           .validate(x =>
             if (List("MUST_CACHE", "CACHE_THROUGH", "THROUGH", "ASYNC_THROUGH").contains(x)) success
             else failure("Behavior must be one of: MUST_CACHE|CACHE_THROUGH|THROUGH|ASYNC_THROUGH")
           )
-          .text("The data write behavior when writing a new file (MUST_CACHE|CACHE_THROUGH|THROUGH|ASYNC_THROUGH). Default to MUST_CACHE")
+          .text("The data write behavior when writing a new file (MUST_CACHE|CACHE_THROUGH|THROUGH|ASYNC_THROUGH). Default to MUST_CACHE"),
+
+        opt[String]("compression").optional().valueName("<codec>")
+          .action((x, c) => c.copy(compression = Some(x)))
+          .validate(x =>
+            if (List("lz4", "snappy", "gzip", "bzip2").contains(x)) success
+            else failure("Compression codec must be one of: lz4|snappy|gzip|bzip2")
+          )
+          .text("The compression codec to use (lz4|snappy|gzip|bzip2)")
+
       )
 
     cmd("read").text(
@@ -75,30 +92,42 @@ object TestAlluxioIOConfParser {
       """.stripMargin)
       .action((_, c) => c.copy(mode = Read))
       .children(
-        opt[Int]("nrFiles").required().valueName("<value>")
+
+        opt[Int]("numFiles").required().valueName("<value>")
           .action((n, c) => c.copy(numFiles = n))
-          .text("Number of files to read. Default to 1."),
+          .text("Number of files to read. Default to 4."),
+
         opt[String]("fileSize").required().valueName("<value>")
           .validate(validateSize)
           .action((s, c) => c.copy(fileSize = sizeToBytes(s)))
-          .text("Size of each file to read (B|KB|MB|GB). Default to 1MB."),
+          .text("Size of each file to read (B|KB|MB|GB). Default to 128B."),
+
         opt[String]("inputDir").required().valueName("<file>")
-          .action((o, c) => c.copy(outputDir = o))
+          .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory where to find the files to read. Default to /benchmarks/TestAlluxioIO"),
+
         opt[String]("readBehavior").optional().valueName("<behavior>")
           .action((b, c) => c.copy(readBehavior = b))
           .validate(x =>
             if (List("CACHE_PROMOTE", "CACHE", "NO_CACHE").contains(x)) success
             else failure("Behavior must be one of: CACHE_PROMOTE|CACHE|NO_CACHE")
           )
-          .text("The data read behavior when reading a new file (CACHE_PROMOTE|CACHE|NO_CACHE). Default to CACHE_PROMOTE")
+          .text("The data read behavior when reading a new file (CACHE_PROMOTE|CACHE|NO_CACHE). Default to CACHE_PROMOTE"),
+
+        opt[String]("compression").optional().valueName("<codec>")
+          .action((x, c) => c.copy(compression = Some(x)))
+          .validate(x =>
+            if (List("lz4", "snappy", "gzip", "bzip2").contains(x)) success
+            else failure("Compression codec must be one of: lz4|snappy|gzip|bzip2")
+          )
+          .text("The compression codec to use (lz4|snappy|gzip|bzip2)")
     )
 
     cmd("clean").text("Remove previous test data. This command deletes de output directory.")
       .action((_, c) => c.copy(mode = Clean))
       .children(
         opt[String]("outputDir").required().valueName("<file>")
-          .action((o, c) => c.copy(outputDir = o))
+          .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory to clean. Default to /benchmarks/TestAlluxioIO")
       )
 
@@ -108,18 +137,16 @@ object TestAlluxioIOConfParser {
 
     help("help").text("prints this usage text")
 
-    // TODO ADD VERSION with sbt plugin
+    version("version")
 
     private val SizePattern = "^(\\d+(?:\\.\\d+)?)(([kKmMgG]?[bB]))$".r
 
     private def validateSize(size: String): Either[String, Unit] = {
-      println("validating...")
       if (size.matches(SizePattern.toString)) success
       else failure("The size must be valid")
     }
 
     private def sizeToBytes(size: String): Long = {
-      println("action...")
       val units = List("b", "kb", "mb", "gb")
       val matcher = SizePattern.findFirstMatchIn(size).get
       val value = matcher.group(1)

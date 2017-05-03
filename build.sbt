@@ -4,7 +4,7 @@ lazy val sparkBenchmarks = project
   .aggregate(alluxio)
 
 lazy val alluxio = project
-  .enablePlugins(AutomateHeaderPlugin, AssemblyPlugin)
+  .enablePlugins(AutomateHeaderPlugin, AssemblyPlugin, BuildInfoPlugin)
   .settings(
     name := "spark-benchmarks-alluxio",
     Dependencies.Spark,

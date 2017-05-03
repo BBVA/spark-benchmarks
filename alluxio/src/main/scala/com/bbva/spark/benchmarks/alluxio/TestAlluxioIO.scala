@@ -18,36 +18,52 @@ package com.bbva.spark.benchmarks.alluxio
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.json4s.BuildInfo
 
+/**
+  * Distributed I/O benchmark.
+  *
+  * This test application writes into or reads from a specified number of files. The number of bytes to write or read
+  * is also specified as a parameter to the test. By default, each file is accessed in a separate spark task.
+  *
+  */
 object TestAlluxioIO extends App with LazyLogging {
 
   Logger.getLogger("akka").setLevel(Level.WARN)
 
   TestAlluxioIOConfParser.parseAndRun(args) { conf =>
 
-    val sparkConf = new SparkConf()
-      .setAppName("TestAlluxioIO")
-      .set("spark.logConf", "true")
-      .set("spark.driver.port", "51000")
-      .set("spark.fileserver.port", "51100")
-      .set("spark.broadcast.port", "51200")
-      .set("spark.blockManager.port", "51400")
-      .set("spark.executor.port", "51500")
+    printOptions(conf)
 
-    implicit val sc = SparkContext.getOrCreate(sparkConf)
+    System.setProperty("alluxio.user.file.writetype.default", conf.writeBehavior)
+    System.setProperty("alluxio.user.file.readtype.default", conf.readBehavior)
 
-    sc.hadoopConfiguration.set("alluxio.user.file.writetype.default", "CACHE_THROUGH")
-    sc.hadoopConfiguration.set("alluxio.user.block.size.bytes.default", "32MB")
-
-    conf.mode match {
-      case Clean =>
-      case Write => DataWriter.generate(conf.outputDir, conf.numFiles, conf.fileSize, 10)
-      case Read =>
+    val job: TestJob = conf.mode match {
+      case Clean => new DataCleaner(conf)
+      case Write => new EnhancedDataWriter(conf)
+      //case Read =>
+      //case _ => // ignore
     }
 
-    sc.stop()
+    job.run()
 
+  }
+
+  private def printOptions(conf: TestAlluxioIOConf): Unit = {
+    logger.info(s"${TestAlluxioIO.getClass.getSimpleName}.${BuildInfo.version}")
+    logger.info("Test mode = {}", conf.mode.command)
+    logger.info("numFiles = {}", conf.numFiles)
+    logger.info("fileSize = {}", conf.fileSize)
+    conf.compression.foreach(codec => logger.info("compression = {}", codec))
+    conf.mode match {
+      case Write =>
+        logger.info("outputDir = {}", conf.benchmarkDir)
+        logger.info("writeBehavior = {}", conf.writeBehavior)
+      case Read =>
+        logger.info("inputDir = {}", conf.benchmarkDir)
+        logger.info("readBehavior = {}", conf.readBehavior)
+      case _ => // ignore
+    }
   }
 
 }
