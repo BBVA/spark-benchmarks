@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package com.bbva.spark.benchmarks.alluxio
+package com.bbva.spark.benchmarks.dfsio
 
-import alluxio.AlluxioURI
-import alluxio.client.file.FileSystem
-import alluxio.client.file.options.DeleteOptions
-import com.typesafe.scalalogging.LazyLogging
+import org.apache.spark.rdd.RDD
 
-class DataCleaner(conf: TestAlluxioIOConf) extends TestJob(conf) with LazyLogging {
+case class Stats(tasks: Long, size: BytesSize, time: Long, rate: Float, sqRate: Float)
 
-  def run() = {
-    logger.info("Cleaning up test files")
-    val fs = FileSystem.Factory.get()
-    val path = new AlluxioURI(conf.benchmarkDir)
-    if (fs.exists(path)) fs.delete(path, DeleteOptions.defaults().setRecursive(true))
+object StatsAccumulator {
+
+  def accumulate(rdd: RDD[Stats]): Stats = rdd.reduce {
+    (s1, s2) => s1.copy(
+      tasks = s1.tasks + s2.tasks,
+      size = s1.size + s2.size,
+      time = s1.time + s2.time,
+      rate = s1.rate + s2.rate,
+      sqRate = s1.rate + s2.sqRate
+    )
   }
 
 }
