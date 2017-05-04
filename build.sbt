@@ -1,12 +1,12 @@
 lazy val sparkBenchmarks = project
   .in(file("."))
   .disablePlugins(AssemblyPlugin)
-  .aggregate(alluxio)
+  .aggregate(dfsio)
 
-lazy val alluxio = project
+lazy val dfsio = project
   .enablePlugins(AutomateHeaderPlugin, AssemblyPlugin, BuildInfoPlugin)
   .settings(
-    name := "spark-benchmarks-alluxio",
+    name := "spark-benchmarks-dfsio",
     Dependencies.Spark,
     Dependencies.Scopt,
     Dependencies.Alluxio
