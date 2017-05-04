@@ -44,8 +44,7 @@ abstract class IOTestBase(hadoopConf: Configuration, dataDir: String) extends Se
 
         val output = doIO(fileName, fileSize)
 
-        val tEnd: Long = System.currentTimeMillis()
-        val execTime: Long = tEnd - tStart
+        val execTime: Long = System.currentTimeMillis() - tStart
 
         collectStats(fileName, execTime, output)
 

@@ -43,6 +43,7 @@ object TestDFSIO extends App with LazyLogging {
   val DataDir = "io_data"
 
   Logger.getLogger("akka").setLevel(Level.WARN)
+  Logger.getLogger("org").setLevel(Level.WARN)
 
   TestDFSIOConfParser.parseAndRun(args) { conf =>
 
@@ -70,6 +71,8 @@ object TestDFSIO extends App with LazyLogging {
         val stats = runWriteTest(conf.benchmarkDir)
         println(stats)
       case Read =>
+        val stats = runReadTest(conf.benchmarkDir)
+        println(stats)
       case _ => // ignore
     }
 
@@ -135,6 +138,24 @@ object TestDFSIO extends App with LazyLogging {
 
     StatsAccumulator.accumulate(stats)
     // TODO should i write the accumulated stats to hdfs (one field per line) and then read again to analyze them?
+  }
+
+  private def runReadTest(benchmarkDir: String)(implicit hadoopConf: Configuration, sc: SparkContext): Stats = {
+
+    val controlDirPath: Path = new Path(benchmarkDir, "io_control")
+    val dataDirPath: Path = new Path(benchmarkDir, DataDir)
+    val readDirPath: Path = new Path(benchmarkDir, ReadDir)
+
+    logger.info("Deleting any previous read directories...")
+    val fs = FileSystem.get(hadoopConf)
+    fs.delete(readDirPath, true)
+
+    val files: RDD[(Text, LongWritable)] = sc.sequenceFile(controlDirPath.toString, classOf[Text], classOf[LongWritable])
+
+    val stats: RDD[Stats] = new IOReader(hadoopConf, dataDirPath.toString).runIOTest(files)
+
+    StatsAccumulator.accumulate(stats)
+
   }
 
   private def getFileName(fileIndex: Int): String = BaseFileName + fileIndex

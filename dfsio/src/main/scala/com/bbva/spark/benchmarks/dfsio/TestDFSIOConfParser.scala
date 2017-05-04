@@ -151,14 +151,20 @@ object TestDFSIOConfParser extends LazyLogging {
   private def printOptions(conf: TestDFSIOConf): Unit = {
     logger.info(s"${TestDFSIOConf.getClass.getSimpleName}.${BuildInfo.version}")
     logger.info("Test mode = {}", conf.mode.command)
-    logger.info("numFiles = {}", conf.numFiles)
-    logger.info("fileSize = {}", conf.fileSize)
-    logger.info("bufferSize = {}", conf.bufferSize)
     conf.compression.foreach(codec => logger.info("compression = {}", codec))
     conf.mode match {
-      case Write => logger.info("outputDir = {}", conf.benchmarkDir)
-      case Read => logger.info("inputDir = {}", conf.benchmarkDir)
-      case Clean => logger.info("outputDir = {}", conf.benchmarkDir)
+      case Write =>
+        logger.info("outputDir = {}", conf.benchmarkDir)
+        logger.info("numFiles = {}", conf.numFiles)
+        logger.info("fileSize = {}", conf.fileSize)
+        logger.info("bufferSize = {}", conf.bufferSize)
+      case Read =>
+        logger.info("inputDir = {}", conf.benchmarkDir)
+        logger.info("numFiles = {}", conf.numFiles)
+        logger.info("fileSize = {}", conf.fileSize)
+        logger.info("bufferSize = {}", conf.bufferSize)
+      case Clean =>
+        logger.info("outputDir = {}", conf.benchmarkDir)
       case _ => // ignore
     }
   }
