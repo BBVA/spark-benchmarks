@@ -16,7 +16,6 @@
 
 package com.bbva.spark.benchmarks.dfsio
 
-import buildinfo.BuildInfo
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 
