@@ -55,7 +55,7 @@ abstract class IOTestBase(hadoopConf: Configuration, dataDir: String) extends Se
 
   def collectStats(fileName: String, execTime: Long, totalSize: BytesSize): Stats = {
 
-    val ioRateMbSec: Float = totalSize.toFloat * 1000 / (execTime * 0x100000) // MEGA 0x100000
+    val ioRateMbSec: Float = totalSize.toFloat * 1000 / (execTime * 0x100000) // MEGA 0x100000 // TODO CHECK THIS
 
     logger.info("Number of bytes processed = {}", totalSize)
     logger.info("Exec time = {}", execTime)

@@ -16,6 +16,8 @@
 
 package com.bbva.spark.benchmarks.dfsio
 
+import java.util.Date
+
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -62,17 +64,16 @@ object TestDFSIO extends App with LazyLogging {
       hadoopConf.set(FileOutputFormat.COMPRESS_TYPE, CompressionType.BLOCK.toString)
     }
 
+    val analyze: (=> Stats) => Unit = measure(conf.mode)
+
     conf.mode match {
       case Clean =>
         cleanUp(conf.benchmarkDir)
       case Write =>
         createControlFiles(conf.benchmarkDir, conf.fileSize, conf.numFiles)
-        // TODO MEASURE AND ANALYZE
-        val stats = runWriteTest(conf.benchmarkDir)
-        println(stats)
+        analyze(runWriteTest(conf.benchmarkDir))
       case Read =>
-        val stats = runReadTest(conf.benchmarkDir)
-        println(stats)
+        analyze(runReadTest(conf.benchmarkDir))
       case _ => // ignore
     }
 
@@ -87,7 +88,7 @@ object TestDFSIO extends App with LazyLogging {
   private def createControlFiles(benchmarkDir: String, fileSize: Long, numFiles: Int)
                                 (implicit hadoopConf: Configuration): Unit = {
 
-    val controlDirPath: Path = new Path(benchmarkDir, "io_control")
+    val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
 
     logger.info("Deleting any previous control directory...")
     val fs = FileSystem.get(hadoopConf)
@@ -123,7 +124,7 @@ object TestDFSIO extends App with LazyLogging {
   private def runWriteTest(benchmarkDir: String)
                           (implicit hadoopConf: Configuration, sc: SparkContext): Stats = {
 
-    val controlDirPath: Path = new Path(benchmarkDir, "io_control")
+    val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
     val dataDirPath: Path = new Path(benchmarkDir, DataDir)
     val writeDirPath: Path = new Path(benchmarkDir, WriteDir)
 
@@ -142,7 +143,7 @@ object TestDFSIO extends App with LazyLogging {
 
   private def runReadTest(benchmarkDir: String)(implicit hadoopConf: Configuration, sc: SparkContext): Stats = {
 
-    val controlDirPath: Path = new Path(benchmarkDir, "io_control")
+    val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
     val dataDirPath: Path = new Path(benchmarkDir, DataDir)
     val readDirPath: Path = new Path(benchmarkDir, ReadDir)
 
@@ -156,6 +157,31 @@ object TestDFSIO extends App with LazyLogging {
 
     StatsAccumulator.accumulate(stats)
 
+  }
+
+  private def measure(testMode: TestMode)(job: => Stats): Unit = {
+    val startTime: Long = System.currentTimeMillis()
+    val stats: Stats = job
+    val execTime: Long = System.currentTimeMillis() - startTime
+    analyzeResult(testMode, execTime, stats)
+  }
+
+  private def analyzeResult(testMode: TestMode, execTime: Long, stats: Stats): Unit = {
+    val med: Float = stats.rate / 1000 / stats.tasks
+    val stdDev = math.sqrt(math.abs(stats.sqRate / 1000 / stats.tasks - med * med))
+    val resultLines =
+      s"""
+        |----- TestDFSIO ----- : ${testMode.command}
+        |           Date & time: ${new Date(System.currentTimeMillis())}
+        |       Number of files: ${stats.tasks}
+        |Total MBytes processed: ${stats.size / 0x100000}
+        |     Throughput mb/sec: ${stats.size * 1000.0 / (stats.time * 0x100000)}
+        |Average IO rate mb/sec: $med
+        | IO rate std deviation: $stdDev
+        |    Test exec time sec: ${execTime.toFloat / 1000}
+        |
+      """.stripMargin
+    logger.info(resultLines)
   }
 
   private def getFileName(fileIndex: Int): String = BaseFileName + fileIndex
