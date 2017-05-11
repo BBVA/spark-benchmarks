@@ -40,7 +40,7 @@ abstract class IOTestBase(hadoopConf: Configuration, dataDir: String) extends Se
         val fileName: String = file.toString
         val fileSize: Long = size.get
 
-        val tStart: Long = System.currentTimeMillis()  // TODO create function measure
+        val tStart: Long = System.currentTimeMillis()
 
         val output = doIO(fileName, fileSize)
 
@@ -55,7 +55,7 @@ abstract class IOTestBase(hadoopConf: Configuration, dataDir: String) extends Se
 
   def collectStats(fileName: String, execTime: Long, totalSize: BytesSize): Stats = {
 
-    val ioRateMbSec: Float = totalSize.toFloat * 1000 / (execTime * 0x100000) // MEGA 0x100000 // TODO CHECK THIS
+    val ioRateMbSec: Float = totalSize.toFloat * 1000 / (execTime * 0x100000) // MEGA in hexadecimal = 0x100000
 
     logger.info("Number of bytes processed = {}", totalSize)
     logger.info("Exec time = {}", execTime)

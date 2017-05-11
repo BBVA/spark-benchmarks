@@ -40,8 +40,6 @@ object TestDFSIO extends App with LazyLogging {
 
   val BaseFileName = "test_io_"
   val ControlDir = "io_control"
-  val WriteDir = "io_write"
-  val ReadDir =  "io_read"
   val DataDir = "io_data"
 
   Logger.getLogger("akka").setLevel(Level.WARN)
@@ -56,6 +54,9 @@ object TestDFSIO extends App with LazyLogging {
 
     // set buffer size
     hadoopConf.setInt("test.io.file.buffer.size", conf.bufferSize)
+    conf.hadoopExtraProps.foreach { case (k, v) =>
+      hadoopConf.set(k, v)
+    }
 
     // set compression codec
     conf.compression.foreach { codec =>
@@ -82,7 +83,8 @@ object TestDFSIO extends App with LazyLogging {
   private def cleanUp(benchmarkDir: String)(implicit hadoopConf: Configuration): Unit = {
     logger.info("Cleaning up test files")
     val fs = FileSystem.get(hadoopConf)
-    fs.delete(new Path(benchmarkDir), true)
+    val path = new Path(benchmarkDir)
+    if (fs.exists(path)) fs.delete(path, true)
   }
 
   private def createControlFiles(benchmarkDir: String, fileSize: Long, numFiles: Int)
@@ -92,7 +94,7 @@ object TestDFSIO extends App with LazyLogging {
 
     logger.info("Deleting any previous control directory...")
     val fs = FileSystem.get(hadoopConf)
-    fs.delete(controlDirPath, true)
+    if (fs.exists(controlDirPath)) fs.delete(controlDirPath, true)
 
     logger.info("Creating control files: {} bytes, {} files", fileSize.toString, numFiles.toString)
     (0 until numFiles).map(getFileName).foreach(createControlFile(hadoopConf, controlDirPath, fileSize))
@@ -126,35 +128,23 @@ object TestDFSIO extends App with LazyLogging {
 
     val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
     val dataDirPath: Path = new Path(benchmarkDir, DataDir)
-    val writeDirPath: Path = new Path(benchmarkDir, WriteDir)
 
-    logger.info("Deleting any previous data and write directories...")
+    logger.info("Deleting any previous data directories...")
     val fs = FileSystem.get(hadoopConf)
-    fs.delete(dataDirPath, true)
-    fs.delete(writeDirPath, true)
+    if (fs.exists(dataDirPath)) fs.delete(dataDirPath, true)
 
     val files: RDD[(Text, LongWritable)] = sc.sequenceFile(controlDirPath.toString, classOf[Text], classOf[LongWritable])
-
     val stats: RDD[Stats] = new IOWriter(hadoopConf, dataDirPath.toString).runIOTest(files)
-
     StatsAccumulator.accumulate(stats)
-    // TODO should i write the accumulated stats to hdfs (one field per line) and then read again to analyze them?
   }
 
   private def runReadTest(benchmarkDir: String)(implicit hadoopConf: Configuration, sc: SparkContext): Stats = {
 
     val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
     val dataDirPath: Path = new Path(benchmarkDir, DataDir)
-    val readDirPath: Path = new Path(benchmarkDir, ReadDir)
-
-    logger.info("Deleting any previous read directories...")
-    val fs = FileSystem.get(hadoopConf)
-    fs.delete(readDirPath, true)
 
     val files: RDD[(Text, LongWritable)] = sc.sequenceFile(controlDirPath.toString, classOf[Text], classOf[LongWritable])
-
     val stats: RDD[Stats] = new IOReader(hadoopConf, dataDirPath.toString).runIOTest(files)
-
     StatsAccumulator.accumulate(stats)
 
   }
