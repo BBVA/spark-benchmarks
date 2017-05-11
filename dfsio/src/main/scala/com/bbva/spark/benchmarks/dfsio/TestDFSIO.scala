@@ -133,6 +133,7 @@ object TestDFSIO extends App with LazyLogging {
     val fs = FileSystem.get(hadoopConf)
     if (fs.exists(dataDirPath)) fs.delete(dataDirPath, true)
 
+    logger.info("Writing files...")
     val files: RDD[(Text, LongWritable)] = sc.sequenceFile(controlDirPath.toString, classOf[Text], classOf[LongWritable])
     val stats: RDD[Stats] = new IOWriter(hadoopConf, dataDirPath.toString).runIOTest(files)
     StatsAccumulator.accumulate(stats)
@@ -143,6 +144,7 @@ object TestDFSIO extends App with LazyLogging {
     val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
     val dataDirPath: Path = new Path(benchmarkDir, DataDir)
 
+    logger.info("Reading files...")
     val files: RDD[(Text, LongWritable)] = sc.sequenceFile(controlDirPath.toString, classOf[Text], classOf[LongWritable])
     val stats: RDD[Stats] = new IOReader(hadoopConf, dataDirPath.toString).runIOTest(files)
     StatsAccumulator.accumulate(stats)
