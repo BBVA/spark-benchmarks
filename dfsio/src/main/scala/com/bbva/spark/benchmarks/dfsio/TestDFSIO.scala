@@ -50,20 +50,23 @@ object TestDFSIO extends App with LazyLogging {
     val sparkConf = new SparkConf().setAppName("TestDFSIO").set("spark.logConf", "true")
 
     implicit val sc = SparkContext.getOrCreate(sparkConf)
+
+    conf.hadoopExtraProps.foreach { case (k, v) =>
+      sc.hadoopConfiguration.set(k, v)
+    }
+
+    // set compression codec
+    // TODO NOT WORKING !!!
+    conf.compression.foreach { codec =>
+      sc.hadoopConfiguration.setBoolean(FileOutputFormat.COMPRESS, true)
+      sc.hadoopConfiguration.set(FileOutputFormat.COMPRESS_CODEC, getCompressionCodecClass(codec))
+      sc.hadoopConfiguration.set(FileOutputFormat.COMPRESS_TYPE, CompressionType.BLOCK.toString)
+    }
+
     implicit val hadoopConf = new Configuration(sc.hadoopConfiguration)
 
     // set buffer size
     hadoopConf.setInt("test.io.file.buffer.size", conf.bufferSize)
-    conf.hadoopExtraProps.foreach { case (k, v) =>
-      hadoopConf.set(k, v)
-    }
-
-    // set compression codec
-    conf.compression.foreach { codec =>
-      hadoopConf.setBoolean(FileOutputFormat.COMPRESS, true)
-      hadoopConf.set(FileOutputFormat.COMPRESS_CODEC, getCompressionCodecClass(codec))
-      hadoopConf.set(FileOutputFormat.COMPRESS_TYPE, CompressionType.BLOCK.toString)
-    }
 
     val analyze: (=> Stats) => Unit = measure(conf.mode)
 
@@ -88,7 +91,7 @@ object TestDFSIO extends App with LazyLogging {
   }
 
   private def createControlFiles(benchmarkDir: String, fileSize: Long, numFiles: Int)
-                                (implicit hadoopConf: Configuration): Unit = {
+                                (implicit hadoopConf: Configuration, sc: SparkContext): Unit = {
 
     val controlDirPath: Path = new Path(benchmarkDir, ControlDir)
 
@@ -97,7 +100,9 @@ object TestDFSIO extends App with LazyLogging {
     if (fs.exists(controlDirPath)) fs.delete(controlDirPath, true)
 
     logger.info("Creating control files: {} bytes, {} files", fileSize.toString, numFiles.toString)
-    (0 until numFiles).map(getFileName).foreach(createControlFile(hadoopConf, controlDirPath, fileSize))
+    ControlFilesCreator.createFiles(controlDirPath.toString, numFiles, fileSize)
+
+    //(0 until numFiles).map(getFileName).foreach(createControlFile(hadoopConf, controlDirPath, fileSize))
     logger.info("Control files created for: {}  files", numFiles.toString)
 
   }
@@ -137,6 +142,7 @@ object TestDFSIO extends App with LazyLogging {
     val files: RDD[(Text, LongWritable)] = sc.sequenceFile(controlDirPath.toString, classOf[Text], classOf[LongWritable])
     val stats: RDD[Stats] = new IOWriter(hadoopConf, dataDirPath.toString).runIOTest(files)
     StatsAccumulator.accumulate(stats)
+
   }
 
   private def runReadTest(benchmarkDir: String)(implicit hadoopConf: Configuration, sc: SparkContext): Stats = {
