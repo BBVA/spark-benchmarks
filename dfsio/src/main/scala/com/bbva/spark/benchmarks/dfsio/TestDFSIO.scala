@@ -51,6 +51,7 @@ object TestDFSIO extends App with LazyLogging {
 
     implicit val sc = SparkContext.getOrCreate(sparkConf)
 
+    // TODO verify it's working!!
     conf.hadoopExtraProps.foreach { case (k, v) =>
       sc.hadoopConfiguration.set(k, v)
     }
