@@ -28,7 +28,7 @@ object StatsAccumulator {
       size = s1.size + s2.size,
       time = s1.time + s2.time,
       rate = s1.rate + s2.rate,
-      sqRate = s1.rate + s2.sqRate
+      sqRate = s1.sqRate + s2.sqRate
     )
   }
 
