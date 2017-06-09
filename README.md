@@ -12,11 +12,11 @@ Motivation
 ----------
 
 There already exists other benchmarks suites in the community that helps to evaluate different big data 
-frameworks. The more representative is [HiBench](https://github.com/intel-hadoop/HiBench) which contains a set of 
+frameworks. The more representative one is [HiBench](https://github.com/intel-hadoop/HiBench) which contains a set of 
 Hadoop, Spark and streaming workloads suited for benchmarking different use cases: sorting, machine learning 
 algorithms, web searches, graphs and so on. 
 
-However, not all workloads are implemented using only Spark jobs and rely on Hadoop Map/Reduce framework assuming Spark
+However, not all workloads are implemented using only Spark jobs and rely on Hadoop MapReduce framework assuming Spark
 is running on top of a YARN cluster. Concretely, DFSIO benchmark, that tests the throughput of a HDFS cluster by 
 generating a large number of tasks performing writes and reads simultaneously, does not have a Spark corresponding 
 implementation.
