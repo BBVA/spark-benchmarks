@@ -51,17 +51,8 @@ object TestDFSIO extends App with LazyLogging {
 
     implicit val sc = SparkContext.getOrCreate(sparkConf)
 
-    // TODO verify it's working!!
     conf.hadoopExtraProps.foreach { case (k, v) =>
       sc.hadoopConfiguration.set(k, v)
-    }
-
-    // set compression codec
-    // TODO NOT WORKING !!!
-    conf.compression.foreach { codec =>
-      sc.hadoopConfiguration.setBoolean(FileOutputFormat.COMPRESS, true)
-      sc.hadoopConfiguration.set(FileOutputFormat.COMPRESS_CODEC, getCompressionCodecClass(codec))
-      sc.hadoopConfiguration.set(FileOutputFormat.COMPRESS_TYPE, CompressionType.BLOCK.toString)
     }
 
     implicit val hadoopConf = new Configuration(sc.hadoopConfiguration)

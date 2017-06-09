@@ -29,7 +29,6 @@ case class TestDFSIOConf(mode: TestMode = NotDefined,
                          numFiles: Int = 4,
                          fileSize: Long = 1048576,
                          benchmarkDir: String = "/benchmarks/DFSIO",
-                         compression: Option[String] = None,
                          bufferSize: Int = 1048576,
                          hadoopExtraProps: Map[String, String] = Map.empty[String, String])
 
@@ -58,14 +57,6 @@ object TestDFSIOConfParser extends LazyLogging {
         opt[String]("outputDir").required().valueName("<file>")
           .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory to place the resultant files. Default to /benchmarks/DFSIO"),
-
-        opt[String]("compression").optional().valueName("<codec>")
-          .action((x, c) => c.copy(compression = Some(x)))
-          .validate(x =>
-            if (List("lz4", "snappy", "gzip", "bzip2").contains(x)) success
-            else failure("Compression codec must be one of: lz4|snappy|gzip|bzip2")
-          )
-          .text("The compression codec to use (lz4|snappy|gzip|bzip2)"),
 
         opt[String]("bufferSize").optional().valueName("<value>")
           .action((s, c) => c.copy(fileSize = sizeToBytes(s)))
@@ -97,14 +88,6 @@ object TestDFSIOConfParser extends LazyLogging {
         opt[String]("inputDir").required().valueName("<file>")
           .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory where to find the files to read. Default to /benchmarks/DFSIO"),
-
-        opt[String]("compression").optional().valueName("<codec>")
-          .action((x, c) => c.copy(compression = Some(x)))
-          .validate(x =>
-            if (List("lz4", "snappy", "gzip", "bzip2").contains(x)) success
-            else failure("Compression codec must be one of: lz4|snappy|gzip|bzip2")
-          )
-          .text("The compression codec to use (lz4|snappy|gzip|bzip2)"),
 
         opt[String]("bufferSize").optional().valueName("<value>")
           .action((s, c) => c.copy(fileSize = sizeToBytes(s)))
@@ -160,7 +143,6 @@ object TestDFSIOConfParser extends LazyLogging {
   private def printOptions(conf: TestDFSIOConf): Unit = {
     logger.info(s"${TestDFSIOConf.getClass.getSimpleName}.${BuildInfo.version}")
     logger.info("Test mode = {}", conf.mode.command)
-    conf.compression.foreach(codec => logger.info("compression = {}", codec))
     conf.mode match {
       case Write =>
         logger.info("outputDir = {}", conf.benchmarkDir)
