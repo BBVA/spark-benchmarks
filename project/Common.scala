@@ -16,9 +16,9 @@ object Common extends AutoPlugin {
       organization := "com.bbva.spark",
       organizationName := "BBVA",
       version := "0.1.0",
-      organizationHomepage := Some(url("http://bbva.com")),
-      //scmInfo := Some(ScmInfo(url("https://github.com/bbva/spark-benchmarks"), "git@github.com:bbva/spark-benchmarks.git")),
-      //developers += Developer(),
+      organizationHomepage := Some(url("https://github.com/BBVA")),
+      scmInfo := Some(ScmInfo(url("https://github.com/BBVA/spark-benchmarks"), "git@github.com:BBVA/spark-benchmarks.git")),
+      developers += Developer("contributors", "Contributors", "", url("https://github.com/BBVA/spark-benchmarks/contributors")),
 
       licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
 
@@ -44,9 +44,9 @@ object Common extends AutoPlugin {
       //apiURL := Some(url(s"http://developer.bbva.com/docs/api/spark-benchmarks/${version.value}")),
 
       headers := headers.value ++ Map(
-        "scala" -> Apache2_0("2017", "BBVA"),
-        "java" -> Apache2_0("2017", "BBVA"),
-        "conf" -> Apache2_0("2017", "BBVA", "#")
+        "scala" -> Apache2_0("2017", "Banco Bilbao Vizcaya Argentaria S.A."),
+        "java" -> Apache2_0("2017", "Banco Bilbao Vizcaya Argentaria S.A."),
+        "conf" -> Apache2_0("2017", "Banco Bilbao Vizcaya Argentaria S.A.", "#")
       )
     )
 
