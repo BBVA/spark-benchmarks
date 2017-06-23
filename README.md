@@ -1,6 +1,8 @@
 Spark Benchmarks
 ================
 
+[![Build Status](https://travis-ci.org/BBVA/spark-benchmarks.svg?branch=master)](https://travis-ci.org/BBVA/spark-benchmarks)
+
 Overview
 --------
 
