@@ -20,7 +20,9 @@ Getting started
 ### How it works
 
 The TestDFSIO benchmark is used for measuring I/O (read/write) performance and it does this by using Spark jobs to read
-and write files in parallel. 
+and write files in parallel. It intentionally avoids any overhead or optimizations induced by Spark and therefore, it 
+assumes certain initial requirements. For instance, files should be replicated and spread to nodes relatively evenly. As
+a result, if it runs at least one task per node on the cluster, it will write out data evenly assuring correct locality.
 
 When a write test is run via 
 
@@ -44,3 +46,44 @@ In order
 
 
 ### Interpreting the results
+
+Now, let's have a look at how the benchmark shows the resulting performance statistics. 
+
+Here follows an example of a result log after a write test and a subsequent read test have been run:
+
+```bash
+----- TestDFSIO ----- : write
+           Date & time: Mon May 08 2017
+       Number of files: 1000
+Total MBytes processed: 1000000
+     Throughput mb/sec: 4.989
+Average IO rate mb/sec: 5.185
+ IO rate std deviation: 0.960
+    Test exec time sec: 1113.53
+    
+----- TestDFSIO ----- : read
+           Date & time: Mon May 08 2017
+       Number of files: 1000
+Total MBytes processed: 1000000
+     Throughput mb/sec: 11.349
+Average IO rate mb/sec: 22.341
+ IO rate std deviation: 119.231
+    Test exec time sec: 544.842
+```
+
+The most significant metrics are  *Throughput mb/sec* and *Average IO rate mb/sec*. Both of them are based on the file size
+written or read by every individual task and the elapsed time to do so. Therefore, it excludes the scheduling time of the tasks 
+from the calculations.
+
+Having this in mind, the *Throughput* metric for the whole job, where *N* is the number of tasks, is defined as follows:
+
+<p align="center">
+  <img src="./throughput.gif"/>
+</p>
+
+
+The *Average IO rate* is defined as:
+
+<p align="center">
+  <img src="./average_io.gif"/>
+</p>
