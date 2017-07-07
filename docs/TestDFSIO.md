@@ -44,7 +44,7 @@ orderly fashion.
 In order to launch the benchmark on a cluster, you can use the `spark-submit` script in Spark's `bin` directory. Once the
 benchmark is bundled, you can launch, for instance, the *write* test just typing the following script:
 
-```bash
+```
 $SPARK_HOME/bin/spark-submit \
   --master <master-url> \
   --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
@@ -65,7 +65,7 @@ For more information about submitting applications, please, refer to the [Spark'
 The benchmark accepts different arguments passed to the main method of the main class. You can use the option `--help` 
 to print the different combinations:
 
-```bash
+```
 $SPARK_HOME/bin/spark-submit \
   --master local \
   --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
@@ -75,7 +75,7 @@ $SPARK_HOME/bin/spark-submit \
 
 Which prints the following help text:
 
-```bash
+```
 Test DFS I/O 0.1.0
 Usage: TestDFSIO [write|read|clean] [options]
 
@@ -110,7 +110,7 @@ Remove previous test data. This command deletes de output directory.
 
 Following the previous instructions, the *read* test should be launched like this:
 
-```bash
+```
 $SPARK_HOME/bin/spark-submit \
   --master <master-url> \
   --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
@@ -127,7 +127,7 @@ $SPARK_HOME/bin/spark-submit \
 Note that each time the *write* phase is executed, the benchmark data is previously cleaned up. However, if you need to force
 the deletion at any moment, you can use the *clean* command:
 
-```bash
+```
 $SPARK_HOME/bin/spark-submit \
   --master <master-url> \
   --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
@@ -142,7 +142,7 @@ Now, let's have a look at how the benchmark shows the resulting performance stat
 
 Here follows an example of a result log after a write test and a subsequent read test have been run:
 
-```bash
+```
 ----- TestDFSIO ----- : write
            Date & time: Mon May 08 2017
        Number of files: 1000
