@@ -22,28 +22,115 @@ Getting started
 The TestDFSIO benchmark is used for measuring I/O (read/write) performance and it does this by using Spark jobs to read
 and write files in parallel. It intentionally avoids any overhead or optimizations induced by Spark and therefore, it 
 assumes certain initial requirements. For instance, files should be replicated and spread to nodes relatively evenly. As
-a result, if it runs at least one task per node on the cluster, it will write out data evenly assuring correct locality.
+a result, if it runs at least one map task per node on the cluster, it will write out data evenly assuring correct locality.
 
-When a write test is run via 
+The test consists of two phases: *write* and *read*. The *read* phase does not generate its own files. For this reason,
+it is a convenient practice to first run a *write* test and the follow-up with a *read* test, while using the same
+parameters as during the previous run.
+
+In the *write* phase, firstly, the test creates a specific number of control 
+files with the name and the file size of the resulting files the test will write subsequently. It then reads the control
+files and writes random data in each file up to the size indicated while collecting metrics for each task. In the 
+*read* phase, the control files are read again, and the data written to the files are read sequentially using a
+ring buffer.
+
+Each of the phases is executed in a different Spark job, so their execution requires multiple jobs to be deployed in an 
+orderly fashion.
 
 
 ### How to submit the benchmark
 
-In order 
+In order to launch the benchmark on a cluster, you can use the `spark-submit` script in Spark's `bin` directory. Once the
+benchmark is bundled, you can launch, for instance, the *write* test just typing the following script:
 
-  --master spark://spark-master:7077 \
+```bash
+$SPARK_HOME/bin/spark-submit \
+  --master <master-url> \
   --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
-  --total-executor-cores $total_executor_cores \
-  --executor-cores $executor_cores \
+  --total-executor-cores <total-executor-cores> \
+  --executor-cores <executor-cores> \
   --driver-memory 1g \
   --executor-memory 1g \
   --conf spark.locality.wait=30s \
-  --conf spark.driver.extraJavaOptions=-Dalluxio.user.file.writetype.default=$write_type \
-  --conf spark.executor.extraJavaOptions=-Dalluxio.user.file.writetype.default=$write_type \
-  --packages org.alluxio:alluxio-core-client:1.4.0 \
-  "http://hdfs-httpfs:14000/webhdfs/v1/jobs/dfsio.jar?op=OPEN&user.name=openshift" \
-  write --numFiles $num_files --fileSize $file_size --outputDir  alluxio://alluxio-master:19998/benchmarks/DFSIO
+  ... # other options
+  /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar \
+  write --numFiles 10 --fileSize 1GB --outputDir hdfs://<hdfs-namenode>:8020/benchmarks/DFSIO
+```
 
+For more information about submitting applications, please, visit the [Spark's documentation](https://spark.apache.org/docs/latest/submitting-applications.html).
+
+The benchmark accepts different arguments passed to the main method of the main class. You can use the option `--help` 
+to print the different combinations:
+
+```bash
+$SPARK_HOME/bin/spark-submit \
+  --master local \
+  --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
+  /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar --help
+```
+
+Which prints the following help text:
+
+```bash
+Test DFS I/O 0.1.0
+Usage: TestDFSIO [write|read|clean] [options]
+
+Command: write [options]
+Runs a test writing to the cluster. The written files are located in the DFS under the folder
+defined by the option <outputDir>. If the folder already exists, it will be first deleted.
+
+  --numFiles <value>       Number of files to write. Default to 4.
+  --fileSize <value>       Size of each file to write (B|KB|MB|GB). Default to 1MB.
+  --outputDir <file>       Name of the directory to place the resultant files. Default to /benchmarks/DFSIO
+  --bufferSize <value>     Size of each file to write (B|KB|MB|GB). Default to 1MB.
+  --hadoopProps k1=v1,k2=v2...
+                           Extra hadoop configuration properties
+Command: read [options]
+Runs a test reading from the cluster. It is convenient to run test with command write first, so that some
+files are prepared for read test. If the test is run with this command before it is run with command write,
+an error message will be shown up.
+
+  --numFiles <value>       Number of files to read. Default to 4.
+  --fileSize <value>       Size of each file to read (B|KB|MB|GB). Default to 128B.
+  --inputDir <file>        Name of the directory where to find the files to read. Default to /benchmarks/DFSIO
+  --bufferSize <value>     Size of each file to write (B|KB|MB|GB). Default to 1MB.
+  --hadoopProps k1=v1,k2=v2...
+                           Extra hadoop configuration properties
+Command: clean [options]
+Remove previous test data. This command deletes de output directory.
+  --outputDir <file>       Name of the directory to clean. Default to /benchmarks/DFSIO
+  --help                   prints this usage text
+  --version
+
+```
+
+Following the previous instructions, the *read* test should be launched like this:
+
+```bash
+$SPARK_HOME/bin/spark-submit \
+  --master <master-url> \
+  --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
+  --total-executor-cores <total-executor-cores> \
+  --executor-cores <executor-cores> \
+  --driver-memory 1g \
+  --executor-memory 1g \
+  --conf spark.locality.wait=30s \
+  ... # other options
+  /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar \
+  read --numFiles 10 --fileSize 1GB --inputDir hdfs://<hdfs-namenode>:8020/benchmarks/DFSIO
+```
+
+Note that each time the *write* phase is executed, the benchmark data is previously deleted. However, if you need to force
+the deletion at any moment, you can use the command *clean*:
+
+```bash
+$SPARK_HOME/bin/spark-submit \
+  --master <master-url> \
+  --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
+  ... # other options
+  /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar \
+  clean --outputDir hdfs://<hdfs-namenode>:8020/benchmarks/DFSIO
+```
 
 ### Interpreting the results
 
@@ -81,6 +168,7 @@ Having this in mind, the *Throughput* metric for the whole job, where *N* is the
   <img src="./throughput.gif"/>
 </p>
 
+$Throughput(N) = \frac{\sum_{i=0}^N filesize_i}{\sum_{i=0}^N time_i}$
 
 The *Average IO rate* is defined as:
 

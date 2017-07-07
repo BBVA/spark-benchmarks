@@ -60,20 +60,19 @@ The followings are needed for building Spark Benchmarks
 To build all modules in Spark Benchmarks, use the below command.
 
 ```bash
-sbt clean package
+sbt clean assembly
 ```
 
 If you are only interested in a single workload you can build a single module. For example, the below command only
 builds the dfsio workload.
 
 ```bash
-sbt dfsio/clean dfsio/package
+sbt dfsio/clean dfsio/assembly
 ```
 
 
 ## TODO:
 
-* Include unit tests (if necessary)
 * Implement TeraSort benchmark
 * Implement NNBench benchmark
 * Implement PageRank benchmark
