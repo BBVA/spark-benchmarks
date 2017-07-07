@@ -25,14 +25,15 @@ assumes certain initial requirements. For instance, files should be replicated a
 a result, if it runs at least one map task per node on the cluster, it will write out data evenly assuring correct locality.
 
 The test consists of two phases: *write* and *read*. The *read* phase does not generate its own files. For this reason,
-it is a convenient practice to first run a *write* test and the follow-up with a *read* test, while using the same
-parameters as during the previous run.
+it is a convenient practice to first run a *write* test and then follow-up with a *read* test, while using the same
+parameters as during the previous run. TestDFSIO is designed in such a way that it will use 1 map task per file, i.e. 
+it is a 1:1 mapping from files to map tasks. Splits are defined so that each map gets only one filename, which it 
+creates or reads.
 
-In the *write* phase, firstly, the test creates a specific number of control 
-files with the name and the file size of the resulting files the test will write subsequently. It then reads the control
-files and writes random data in each file up to the size indicated while collecting metrics for each task. In the 
-*read* phase, the control files are read again, and the data written to the files are read sequentially using a
-ring buffer.
+In the *write* phase, firstly, the test creates a specific number of control files with the name and the file size of 
+the resulting files the test will write subsequently. It then reads the control files and writes random data in each 
+file, up to the size indicated, while collecting metrics for each task. In the *read* phase, the control files are read 
+again, and the data written to the files are read sequentially using a ring buffer.
 
 Each of the phases is executed in a different Spark job, so their execution requires multiple jobs to be deployed in an 
 orderly fashion.
@@ -57,7 +58,9 @@ $SPARK_HOME/bin/spark-submit \
   write --numFiles 10 --fileSize 1GB --outputDir hdfs://<hdfs-namenode>:8020/benchmarks/DFSIO
 ```
 
-For more information about submitting applications, please, visit the [Spark's documentation](https://spark.apache.org/docs/latest/submitting-applications.html).
+This test will run the corresponding *write* test using 10 input files of size 1GB.
+
+For more information about submitting applications, please, refer to the [Spark's documentation](https://spark.apache.org/docs/latest/submitting-applications.html).
 
 The benchmark accepts different arguments passed to the main method of the main class. You can use the option `--help` 
 to print the different combinations:
@@ -66,7 +69,8 @@ to print the different combinations:
 $SPARK_HOME/bin/spark-submit \
   --master local \
   --class com.bbva.spark.benchmarks.dfsio.TestDFSIO \
-  /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar --help
+  /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar \
+  --help
 ```
 
 Which prints the following help text:
@@ -120,8 +124,8 @@ $SPARK_HOME/bin/spark-submit \
   read --numFiles 10 --fileSize 1GB --inputDir hdfs://<hdfs-namenode>:8020/benchmarks/DFSIO
 ```
 
-Note that each time the *write* phase is executed, the benchmark data is previously deleted. However, if you need to force
-the deletion at any moment, you can use the command *clean*:
+Note that each time the *write* phase is executed, the benchmark data is previously cleaned up. However, if you need to force
+the deletion at any moment, you can use the *clean* command:
 
 ```bash
 $SPARK_HOME/bin/spark-submit \
