@@ -60,7 +60,8 @@ $SPARK_HOME/bin/spark-submit \
 
 This test will run the corresponding *write* test using 10 input files of size 1GB.
 
-For more information about submitting applications, please, refer to the [Spark's documentation](https://spark.apache.org/docs/latest/submitting-applications.html).
+The TestDFSIO benchmark writes its files to /benchmarks/DFSIO on HDFS. Files from older write runs are overwritten. 
+If you want to preserve the output files of previous runs, you have to copy/move these files manually to a new HDFS location.
 
 The benchmark accepts different arguments passed to the main method of the main class. You can use the option `--help` 
 to print the different combinations:
@@ -135,6 +136,9 @@ $SPARK_HOME/bin/spark-submit \
   /path/to/spark-benchmarks/dfsio/target/scala_2.11/spark-benchmarks-dfsio-0.1.0-with-dependencies.jar \
   clean --outputDir hdfs://<hdfs-namenode>:8020/benchmarks/DFSIO
 ```
+
+For more information about submitting applications, please, refer to the 
+[Spark's documentation](https://spark.apache.org/docs/latest/submitting-applications.html).
 
 ### Interpreting the results
 
