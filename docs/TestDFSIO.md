@@ -63,7 +63,7 @@ This test will run the corresponding *write* test using 10 input files of size 1
 The TestDFSIO benchmark writes its files to /benchmarks/DFSIO on HDFS. Files from older write runs are overwritten. 
 If you want to preserve the output files of previous runs, you have to copy these files manually to a new HDFS 
 location. Benchmark results are appended to a local file called `TestDFSIO_results.log` in the current local directory 
-and also printed to STDOUT. If you want to save them to different filename, set the `-resFile` option appropriately.
+and also printed to log. If you want to save them to different filename, set the `-resFile` option appropriately.
 
 The benchmark accepts different arguments passed to the main method of the main class. You can use the option `--help` 
 to print the different combinations:
