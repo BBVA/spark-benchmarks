@@ -16,6 +16,7 @@
 
 package com.bbva.spark.benchmarks.dfsio
 
+import java.io.{BufferedWriter, FileWriter, PrintWriter}
 import java.util.Date
 
 import com.typesafe.scalalogging.LazyLogging
@@ -24,7 +25,6 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.{LongWritable, SequenceFile, Text}
 import org.apache.hadoop.io.SequenceFile.{CompressionType, Writer}
 import org.apache.hadoop.io.compress._
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -60,7 +60,7 @@ object TestDFSIO extends App with LazyLogging {
     // set buffer size
     hadoopConf.setInt("test.io.file.buffer.size", conf.bufferSize)
 
-    val analyze: (=> Stats) => Unit = measure(conf.mode)
+    val analyze: (=> Stats) => Unit = measure(conf.mode, conf.resFileName)
 
     conf.mode match {
       case Clean =>
@@ -149,17 +149,17 @@ object TestDFSIO extends App with LazyLogging {
 
   }
 
-  private def measure(testMode: TestMode)(job: => Stats): Unit = {
+  private def measure(testMode: TestMode, resFileName: String)(job: => Stats): Unit = {
     val startTime: Long = System.currentTimeMillis()
     val stats: Stats = job
     val execTime: Long = System.currentTimeMillis() - startTime
-    analyzeResult(testMode, execTime, stats)
+    analyzeResult(testMode, execTime, stats, resFileName)
   }
 
-  private def analyzeResult(testMode: TestMode, execTime: Long, stats: Stats): Unit = {
+  private def analyzeResult(testMode: TestMode, execTime: Long, stats: Stats, resFileName: String): Unit = {
     val med: Float = stats.rate / 1000 / stats.tasks
     val stdDev = math.sqrt(math.abs(stats.sqRate / 1000 / stats.tasks - med * med))
-    val resultLines =
+    val resultLines: String =
       s"""
         |----- TestDFSIO ----- : ${testMode.command}
         |           Date & time: ${new Date(System.currentTimeMillis())}
@@ -172,6 +172,7 @@ object TestDFSIO extends App with LazyLogging {
         |
       """.stripMargin
     logger.info(resultLines)
+    appendToResultFile(resFileName, resultLines)
   }
 
   private def getFileName(fileIndex: Int): String = BaseFileName + fileIndex
@@ -184,6 +185,20 @@ object TestDFSIO extends App with LazyLogging {
       case "snappy" => classOf[SnappyCodec]
       case "lz4" => classOf[Lz4Codec]
       case "bzip2" => classOf[BZip2Codec]
+    }
+
+  private def withPrintWriter[A](name: String, append: Boolean = true)(func: PrintWriter => A): A = {
+    val writer = new PrintWriter(new BufferedWriter(new FileWriter(name, append)))
+    try {
+      func(writer)
+    } finally {
+      writer.close()
+    }
+  }
+
+  private def appendToResultFile(resFileName: String, resultLines: String): Unit =
+    withPrintWriter(resFileName) { writer =>
+      writer.println(resultLines)
     }
 
 }

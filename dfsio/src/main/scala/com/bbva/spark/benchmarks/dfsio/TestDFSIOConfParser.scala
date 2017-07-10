@@ -29,6 +29,7 @@ case class TestDFSIOConf(mode: TestMode = NotDefined,
                          numFiles: Int = 4,
                          fileSize: Long = 1048576,
                          benchmarkDir: String = "/benchmarks/DFSIO",
+                         resFileName: String = "TestDFSIO_results.log",
                          bufferSize: Int = 1048576,
                          hadoopExtraProps: Map[String, String] = Map.empty[String, String])
 
@@ -57,6 +58,10 @@ object TestDFSIOConfParser extends LazyLogging {
         opt[String]("outputDir").required().valueName("<file>")
           .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory to place the resultant files. Default to /benchmarks/DFSIO"),
+
+        opt[String]("resFile").optional().valueName("<fileName>")
+          .action((r, c) => c.copy(resFileName = r))
+          .text("Name of the local file in the current local directory where to append the benchmark results."),
 
         opt[String]("bufferSize").optional().valueName("<value>")
           .action((s, c) => c.copy(fileSize = sizeToBytes(s)))
@@ -88,6 +93,10 @@ object TestDFSIOConfParser extends LazyLogging {
         opt[String]("inputDir").required().valueName("<file>")
           .action((o, c) => c.copy(benchmarkDir = o))
           .text("Name of the directory where to find the files to read. Default to /benchmarks/DFSIO"),
+
+        opt[String]("resFile").optional().valueName("<fileName>")
+          .action((r, c) => c.copy(resFileName = r))
+          .text("Name of the local file in the current local directory where to append the benchmark results."),
 
         opt[String]("bufferSize").optional().valueName("<value>")
           .action((s, c) => c.copy(fileSize = sizeToBytes(s)))
@@ -146,11 +155,13 @@ object TestDFSIOConfParser extends LazyLogging {
     conf.mode match {
       case Write =>
         logger.info("outputDir = {}", conf.benchmarkDir)
+        logger.info("resFile = {}", conf.resFileName)
         logger.info("numFiles = {}", conf.numFiles)
         logger.info("fileSize = {}", conf.fileSize)
         logger.info("bufferSize = {}", conf.bufferSize)
       case Read =>
         logger.info("inputDir = {}", conf.benchmarkDir)
+        logger.info("resFile = {}", conf.resFileName)
         logger.info("numFiles = {}", conf.numFiles)
         logger.info("fileSize = {}", conf.fileSize)
         logger.info("bufferSize = {}", conf.bufferSize)
