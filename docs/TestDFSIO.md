@@ -180,8 +180,6 @@ Having this in mind, the *Throughput* metric for the whole job, where *N* is the
   <img src="./throughput.gif"/>
 </p>
 
-$Throughput(N) = \frac{\sum_{i=0}^N filesize_i}{\sum_{i=0}^N time_i}$
-
 The *Average IO rate* is defined as:
 
 <p align="center">
