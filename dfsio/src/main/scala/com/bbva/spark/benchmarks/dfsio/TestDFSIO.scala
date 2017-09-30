@@ -43,7 +43,7 @@ object TestDFSIO extends App with LazyLogging {
   val DataDir = "io_data"
 
   Logger.getLogger("akka").setLevel(Level.WARN)
-  Logger.getLogger("org").setLevel(Level.WARN)
+  //Logger.getLogger("org").setLevel(Level.WARN)
 
   TestDFSIOConfParser.parseAndRun(args) { conf =>
 
