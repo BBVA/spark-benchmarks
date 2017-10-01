@@ -24,7 +24,7 @@ class IOReader(hadoopConf: Configuration, dataDir: String) extends IOTestBase(ha
   def doIO(fileName: String, fileSize: BytesSize)(implicit conf: Configuration, fs: FileSystem): BytesSize = {
 
     val bufferSize = conf.getInt("test.io.file.buffer.size", DefaultBufferSize) // TODO GET RID OF DEFAULT
-    val buffer: Array[Byte] = Array.tabulate[Byte](bufferSize)(i => ('0' + i % 50).toByte)
+    val buffer: Array[Byte] = new Array[Byte](bufferSize)
     val filePath = new Path(dataDir, fileName.toString)
 
     logger.info("Reading file {} with size {}", filePath.toString, fileSize.toString)
@@ -33,10 +33,12 @@ class IOReader(hadoopConf: Configuration, dataDir: String) extends IOTestBase(ha
 
     var actualSize: Long = 0 // TODO improve this
     try {
-      for (remaining <- fileSize to 0 by -bufferSize) {
-        val currentSize = if (bufferSize.toLong < remaining) bufferSize else remaining.toInt
-        actualSize += in.read(buffer, 0, currentSize).toLong
-      }
+      Stream.continually(in.read(buffer, 0, bufferSize))
+        .takeWhile(_ > 0 && actualSize < fileSize)
+        .foreach { currentSize =>
+          actualSize += currentSize
+          logger.debug(s"Reading chunk of size $currentSize. Currently: $actualSize / $fileSize")
+        }
     } finally {
       in.close()
     }
